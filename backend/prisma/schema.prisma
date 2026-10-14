@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Run {
+  id                 String   @id
+  issuer             String
+  wallet             String
+  verifier           String
+  format             String
+  status             String
+  verificationResult String?
+  errorStep          String?
+  errorMessage       String?
+  createdAt          DateTime @default(now())
+  steps              Step[]
+
+  @@index([createdAt])
+}
+
+model Step {
+  id           String   @id
+  runId        String
+  run          Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  name         String
+  stage        String
+  fromParty    String
+  toParty      String
+  requestJson  String
+  responseJson String?
+  httpStatus   Int?
+  ok           Boolean
+  durationMs   Int
+  timestamp    DateTime
+
+  @@index([runId])
+}
