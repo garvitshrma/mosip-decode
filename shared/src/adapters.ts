@@ -28,6 +28,16 @@ export interface RunContext {
   record: RecordStep;
 }
 
+export type IssuanceFlow = "authorization_code" | "pre_authorized_code";
+
+export interface CredentialOfferRequest {
+  credentialType: string;
+  issuanceFlow: IssuanceFlow;
+  claims?: Record<string, unknown>;
+  expiresIn?: number;
+  txCode?: string;
+}
+
 export interface RecordStepInput {
   name: StepName;
   stage: Stage;
@@ -58,17 +68,21 @@ export interface PresentationRequest {
   transactionId: string;
 }
 
-export interface VerificationResult {
+
+/** Verifier-side structural validation result. */
+export type VerifierValidationResult = {
   outcome: VerificationOutcome;
   /** Raw verifier response, shown in the inspector. */
   raw: unknown;
-}
+};
 
+/** An adapter that issues verifiable credentials. */
 export interface IssuerAdapter {
   info: AdapterInfo;
-  createOffer(ctx: RunContext): Promise<CredentialOffer>;
+  createOffer(ctx: RunContext, request?: CredentialOfferRequest): Promise<CredentialOffer>;
 }
 
+/** An adapter that holds and presents credentials. */
 export interface WalletAdapter {
   info: AdapterInfo;
   /** Hand the offer to the holder. Real wallets show a QR and wait for the user. */
@@ -77,12 +91,15 @@ export interface WalletAdapter {
   presentCredential(ctx: RunContext, request: PresentationRequest): Promise<void>;
 }
 
+/** An adapter that verifies presented credentials. */
 export interface VerifierAdapter {
   info: AdapterInfo;
   createRequest(ctx: RunContext): Promise<PresentationRequest>;
-  getResult(ctx: RunContext, request: PresentationRequest): Promise<VerificationResult>;
+  /** Structural validation result from the /validate endpoint. */
+  getResult(ctx: RunContext, request: PresentationRequest): Promise<VerifierValidationResult>;
 }
 
+/** All adapter types. */
 export type Adapter = IssuerAdapter | WalletAdapter | VerifierAdapter;
 
 /** Thrown by adapters that are declared but not implemented yet. Never fake a result. */

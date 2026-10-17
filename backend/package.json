@@ -10,7 +10,7 @@
     "build": "tsc --noEmit",
     "db:push": "prisma db push --skip-generate && prisma generate",
     "db:studio": "prisma studio",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test src/*.test.ts src/**/*.test.ts"
   },
   "dependencies": {
     "@playground/shared": "*",

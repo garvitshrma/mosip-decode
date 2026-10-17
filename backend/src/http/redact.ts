@@ -9,6 +9,7 @@ const SECRET_FIELDS = [
   "id_token",
   "client_secret",
   "pre-authorized_code",
+  "claims",
   "private_key",
   "jwt",
 ];
@@ -17,12 +18,14 @@ const SECRET_FIELDS = [
 // describe a requirement (length, input_mode, proof_type) and those fields are
 // interop-relevant, so the object is kept and only a bare value is hidden.
 const SCALAR_SECRET_FIELDS = ["code", "tx_code", "proof"];
+const MAX_REDACTION_DEPTH = 6;
 
 function isScalar(value: unknown): boolean {
   return value === null || typeof value !== "object";
 }
 
 export const REDACTED = "[redacted]";
+const UNAVAILABLE = "[unavailable]";
 
 export function redactHeaders(headers: unknown): Record<string, string> {
   const out: Record<string, string> = {};
@@ -38,27 +41,42 @@ export function redactHeaders(headers: unknown): Record<string, string> {
  * Replace known secret values but keep the shape, so the inspector still shows
  * that a token was present and where it sat in the payload.
  */
-export function redactBody(body: unknown, depth = 0): unknown {
-  if (depth > 6 || body === null || body === undefined) return body;
+export function redactBody(body: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  if (body === null || body === undefined) return body;
+  if (depth > MAX_REDACTION_DEPTH) return UNAVAILABLE;
 
   if (typeof body === "string") {
-    // Form-encoded bodies arrive as strings.
-    if (body.includes("=") && body.includes("&")) return redactFormString(body);
+    // Form-encoded bodies arrive as strings, including single-field bodies.
+    if (body.includes("=")) return redactFormString(body);
+    if (body.trimStart().startsWith("{") || body.trimStart().startsWith("[")) {
+      try {
+        return redactBody(JSON.parse(body), depth + 1, seen);
+      } catch {
+        return UNAVAILABLE;
+      }
+    }
     return body;
   }
 
-  if (Array.isArray(body)) return body.map((item) => redactBody(item, depth + 1));
-
   if (typeof body === "object") {
+    if (seen.has(body)) return UNAVAILABLE;
+    seen.add(body);
+    if (Array.isArray(body)) return body.map((item) => redactBody(item, depth + 1, seen));
+
     const out: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(body as Record<string, unknown>)) {
-      if (SECRET_FIELDS.includes(key)) {
-        out[key] = REDACTED;
-      } else if (SCALAR_SECRET_FIELDS.includes(key) && isScalar(value)) {
-        out[key] = REDACTED;
-      } else {
-        out[key] = redactBody(value, depth + 1);
+    try {
+      for (const [key, value] of Object.entries(body as Record<string, unknown>)) {
+        const normalizedKey = key.toLowerCase();
+        if (SECRET_FIELDS.includes(normalizedKey)) {
+          out[key] = REDACTED;
+        } else if (SCALAR_SECRET_FIELDS.includes(normalizedKey) && isScalar(value)) {
+          out[key] = REDACTED;
+        } else {
+          out[key] = redactBody(value, depth + 1, seen);
+        }
       }
+    } catch {
+      return UNAVAILABLE;
     }
     return out;
   }
@@ -71,8 +89,19 @@ function redactFormString(body: string): string {
     .split("&")
     .map((pair) => {
       const [key, ...rest] = pair.split("=");
-      const secret = SECRET_FIELDS.includes(key) || SCALAR_SECRET_FIELDS.includes(key);
-      return secret ? `${key}=${REDACTED}` : [key, ...rest].join("=");
+      const decodedKey = decodeFormComponent(key);
+      const normalizedKey = decodedKey?.toLowerCase();
+      const secret = normalizedKey !== undefined
+        && (SECRET_FIELDS.includes(normalizedKey) || SCALAR_SECRET_FIELDS.includes(normalizedKey));
+      return secret || decodedKey === undefined ? `${key}=${REDACTED}` : [key, ...rest].join("=");
     })
     .join("&");
+}
+
+function decodeFormComponent(value: string): string | undefined {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "));
+  } catch {
+    return undefined;
+  }
 }

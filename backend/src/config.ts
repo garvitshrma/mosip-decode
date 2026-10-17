@@ -19,6 +19,10 @@ export const config = {
     externalIssuer: url("EXTERNAL_ISSUER_BASE_URL"),
     externalVerifier: url("EXTERNAL_VERIFIER_BASE_URL"),
   },
+  verifier: {
+    serviceUrl: url("VERIFY_SERVICE_URL"),
+    clientId: url("VERIFY_CLIENT_ID"),
+  },
 };
 
 export type ServiceName = keyof typeof config.services;

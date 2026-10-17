@@ -15,6 +15,18 @@ export function createApp() {
     res.json({ ok: true, phase: 1 });
   });
 
+  app.get("/api/verifier/config", (_req, res) => {
+    const { serviceUrl, clientId } = config.verifier;
+    if (!serviceUrl || !clientId) {
+      res.status(503).json({
+        error:
+          "Verifier is not configured. Set VERIFY_SERVICE_URL and VERIFY_CLIENT_ID in the backend environment.",
+      });
+      return;
+    }
+    res.json({ serviceUrl, clientId });
+  });
+
   app.use("/api", adapterRoutes);
   app.use("/api", runRoutes);
   app.use("/api", probeRoutes);

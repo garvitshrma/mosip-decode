@@ -28,6 +28,20 @@ test("form encoded bodies are redacted per field", () => {
   assert.equal(body, `grant_type=authorization_code&code=${REDACTED}&redirect_uri=http://x`);
 });
 
+test("single-field, encoded, and malformed structured secrets are hidden", () => {
+  const values = [
+    redactBody("client_secret=SECRET_SENTINEL"),
+    redactBody("grant_type=authorization_code&client_secret=SECRET_SENTINEL"),
+    redactBody("client%5Fsecret=SECRET_SENTINEL"),
+    redactBody('{"access_token":"SECRET_SENTINEL"'),
+  ];
+  assert.equal(values.every((value) => !JSON.stringify(value).includes("SECRET_SENTINEL")), true);
+});
+
+test("ordinary non-sensitive strings remain readable", () => {
+  assert.equal(redactBody("issuer metadata is available"), "issuer metadata is available");
+});
+
 test("secrets nested in arrays and objects are found", () => {
   const body = redactBody({ a: { b: [{ client_secret: "x", keep: 1 }] } }) as {
     a: { b: { client_secret: string; keep: number }[] };
@@ -61,11 +75,27 @@ test("pre-authorized_code is hidden inside the grants object", () => {
   assert.equal(offer.grants[key]["pre-authorized_code"], REDACTED);
 });
 
-test("empty and cyclic values do not throw", () => {
+test("credential claims are hidden from recorded protocol bodies", () => {
+  const body = redactBody({ claims: { given_name: "claim-secret" } }) as Record<string, unknown>;
+  assert.equal(body.claims, REDACTED);
+  assert.equal(JSON.stringify(body).includes("claim-secret"), false);
+});
+
+test("deep and cyclic values do not expose secrets or throw", () => {
   assert.equal(redactBody(null), null);
   assert.equal(redactBody(undefined), undefined);
   assert.equal(redactBody("plain string"), "plain string");
   const cyclic: Record<string, unknown> = { name: "x" };
   cyclic.self = cyclic;
-  assert.doesNotThrow(() => redactBody(cyclic));
+  assert.doesNotThrow(() => JSON.stringify(redactBody(cyclic)));
+
+  const deep: Record<string, unknown> = {};
+  let current = deep;
+  for (let index = 0; index < 8; index += 1) {
+    const nested: Record<string, unknown> = {};
+    current.nested = nested;
+    current = nested;
+  }
+  current.access_token = "SECRET_SENTINEL";
+  assert.equal(JSON.stringify(redactBody(deep)).includes("SECRET_SENTINEL"), false);
 });
