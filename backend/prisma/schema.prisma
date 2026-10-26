@@ -13,14 +13,18 @@ model Run {
   wallet             String
   verifier           String
   format             String
+  kind               String   @default("workflow")
   status             String
   verificationResult String?
+  verificationEvidence String?
   errorStep          String?
   errorMessage       String?
   createdAt          DateTime @default(now())
   steps              Step[]
 
   @@index([createdAt])
+  credentials        Credential[]
+  offerOperation     OfferOperation?
 }
 
 model Step {
@@ -39,4 +43,31 @@ model Step {
   timestamp    DateTime
 
   @@index([runId])
+}
+
+model Credential {
+  id            String   @id
+  runId         String   @unique
+  run           Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  format        String
+  credentialJson String
+  status        String
+  issuedAt      DateTime @default(now())
+  demo          Boolean  @default(true)
+}
+
+model OfferOperation {
+  id                       String   @id
+  runId                    String   @unique
+  run                      Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  requestFingerprint       String
+  credentialConfigurationId String
+  format                   String
+  status                   String
+  offerUri                 String?
+  issuerUrl                String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@index([status])
 }

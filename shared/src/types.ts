@@ -77,6 +77,8 @@ export interface Step {
 }
 
 export type RunStatus = "running" | "pass" | "fail";
+export type RunKind = "workflow" | "verification" | "issuance";
+export type VerificationEvidence = "client-reported" | "server-verified";
 
 /** The verifier's own answer, kept separate from whether the run completed. */
 export type VerificationOutcome = "VALID" | "INVALID" | "EXPIRED" | "REVOKED";
@@ -99,10 +101,14 @@ export interface Run {
   wallet: string;
   verifier: string;
   format: CredentialFormat;
+  kind: RunKind;
   status: RunStatus;
   verificationResult?: VerificationOutcome;
+  verificationEvidence?: VerificationEvidence;
   steps: Step[];
   error?: RunError;
+  /** Associated credential, populated for runs that have one (e.g. wallet view). */
+  credential?: Credential;
   /** ISO 8601. */
   createdAt: string;
 }
@@ -113,6 +119,8 @@ export interface CreateRunRequest {
   wallet: string;
   verifier: string;
   format: CredentialFormat;
+  /** Existing callers default to a workflow run; verifier attempts set this explicitly. */
+  kind?: RunKind;
 }
 
 /** Run without its steps, for list views. */
@@ -138,5 +146,26 @@ export interface RunUpdateEvent {
   runId: string;
   status: RunStatus;
   verificationResult?: VerificationOutcome;
+  verificationEvidence?: VerificationEvidence;
   error?: RunError;
+}
+
+/** Structural validation result from the /validate endpoint. */
+export interface VerificationResult {
+  valid: boolean;
+  message: string;
+  structural: boolean;
+}
+
+/** A verifiable credential, returned from demo issuance. */
+export interface Credential {
+  id: string;
+  type: string;
+  format: CredentialFormat;
+  holder?: string;
+  issuer?: { name: string };
+  issuedAt?: string;
+  credentialJson?: string;
+  status?: string;
+  demo?: boolean;
 }

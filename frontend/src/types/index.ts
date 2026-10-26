@@ -8,9 +8,3 @@ export interface Credential {
   issuedAt: string;
   status: CredentialStatus;
 }
-
-export interface VerificationResult {
-  valid: boolean;
-  message: string;
-  checkedAt: string;
-}
