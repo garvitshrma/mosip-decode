@@ -20,6 +20,8 @@
 
 - [Team](#team)
 - [Overview](#overview)
+- [Explained Simply](#explained-simply)
+- [Quick Demo](#quick-demo)
 - [Problem Statement](#problem-statement)
 - [Our Solution](#our-solution)
 - [Objectives](#objectives)
@@ -77,9 +79,59 @@ The playground is designed around the digital credential lifecycle:
 
 The project focuses on interoperability with the [Inji ecosystem](https://github.com/inji), while providing a foundation for exploring compatibility with external credential issuers and verifiers.
 
-**Important:** The current implementation is a work in progress. Some application features and protocol-inspection capabilities are implemented, but the complete live credential issuance, wallet presentation, and verification workflow has not yet been demonstrated end to end.
+**Demo status:** A self-contained **local reference stack** now runs the complete issue → hold → present → verify lifecycle with real Ed25519 signatures, both OpenID4VCI-shaped issuance flows and a server-verified result. It does not need Inji services for the app itself.
 
-The application explicitly distinguishes configured, blocked, and unverified operations instead of presenting unsuccessful or untested protocol interactions as successful.
+The live **Inji Certify / Mimoto / Inji Verify** integration is still not demonstrated in this checkout; those adapters block honestly until their services are configured. The application explicitly distinguishes local-demo evidence, configured services, blocked operations and untested integrations.
+
+---
+
+## Explained Simply
+
+A verifiable credential is like a **digitally signed ID card**.
+
+- The **issuer** is the office that signs the card.
+- The **wallet** is the phone that stores the card.
+- The **verifier** is the shop or office that checks the signature.
+- The **playground** is a glass box around all three: it shows every message, every signature check, and the exact step that failed.
+
+The demo does **not** need a real government database or the MOSIP sandbox. It creates its own test issuer, wallet and verifier inside the app, using real Ed25519 keys. Click **Run end-to-end demo** and a complete credential lifecycle happens in front of you. If a signature or the data is altered, verification reports **INVALID** instead of faking a pass.
+
+What it is **not**: it is not proof that live Inji Certify, Mimoto or Inji Verify have been tested. Those adapters are included, but they clearly report when they are not configured.
+
+---
+
+## Quick Demo
+
+### Docker (one command)
+
+Start Docker Desktop first. Then, from the repository root:
+
+```bash
+docker compose up --build
+```
+
+Wait for the build to finish and open **http://localhost:5173/playground**. nginx serves the built React app and proxies `/api` and `/socket.io` to the backend. SQLite is stored in the `demo-db` volume, so credentials survive restarts. Stop with `Ctrl+C` or `docker compose down`.
+
+No Node.js install, database, or environment file is needed for this path. The first build takes a few minutes; later starts are much faster.
+
+### Local development
+
+```bash
+npm run setup
+npm run dev
+```
+
+Open **http://localhost:5173/playground**.
+
+### What to click
+
+1. Keep the **Local reference issuer / wallet / verifier** selection.
+2. Choose `ldp_vc` or `vc+sd-jwt` and either issuance flow.
+3. Click **Run end-to-end demo**.
+4. Expand the Protocol Inspector steps to see the offer, token, proof JWT, signed credential, VP and verification result.
+5. Open **Wallet** to inspect the persisted signed credential.
+
+Full demo script, test data, API examples and submission checklist: [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md).
 
 ---
 
@@ -366,6 +418,7 @@ Before setting up the project, install:
 - [Node.js](https://nodejs.org/) version 20 or later.
 - npm, included with Node.js.
 - Git.
+- Optional: Docker Desktop with Docker Compose for the one-command demo.
 
 You should also have a compatible code editor and terminal.
 
@@ -489,6 +542,14 @@ These values are configuration examples, not confirmation that the corresponding
 
 ## Running the Application
 
+### Docker (one command)
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:5173/playground`. The compose file starts the backend, builds the frontend, and uses a named volume for SQLite. See [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) for ports and troubleshooting.
+
 ### Start the frontend and backend together
 
 From the repository root:
@@ -587,7 +648,12 @@ The following endpoints are documented in the implementation.
 | `GET` | `/api/runs/:id/probe` | Probe a workflow run |
 | `GET` | `/api/runs/:id/metadata` | Retrieve issuer metadata associated with an issuance run |
 | `POST` | `/api/runs/:id/offer` | Initiate the supported credential-offer operation for an issuance run |
+| `POST` | `/api/runs/:id/execute` | Run the complete local reference demo and record every step |
 | `GET` | `/api/credentials` | Retrieve credential summaries |
+| `GET` | `/api/credentials/:id` | Retrieve one stored signed credential |
+| `POST` | `/api/runs/:id/credential` | Generate the legacy demo credential record |
+| `POST` | `/api/validate` | Structural credential validation |
+| `POST` | `/api/runs/:id/credential/delete` | Mark a credential deleted |
 | `GET` | `/api/verifier/config` | Retrieve verifier configuration status |
 
 The repository also contains issuance, presentation, verification, and credential-management routes. Their exact behavior depends on the configured services and the implementation status described in the interoperability documentation.
@@ -653,34 +719,29 @@ Similarly, structural validation of a credential does not establish that its sig
 
 ## Testing
 
-The repository includes deployment-independent regression tests.
+The repository includes deployment-independent regression tests, including the full local demo.
 
 ### Available test suites
 
-| Test file | Tests | Purpose |
+| Area | Tests | Purpose |
 |---|---:|---|
-| `backend/src/http/redact.test.ts` | 7 | Tests redaction of sensitive information |
-| `backend/src/wallet-import.test.ts` | 5 | Tests credential-format recognition, JSON handling, and structural validation |
-| **Total** | **12** | **Deployment-independent regression tests** |
+| Redaction | 10 | Sensitive headers, tokens, codes and proofs |
+| Inji adapter and tracing | 21 | Certify metadata/offer contracts and redacted HTTP tracing |
+| Run lifecycle and verification policy | 22 | Issuance lifecycle, terminal states, verifier transitions, concurrency |
+| Local reference demo | 12 | Real signatures, both flows, tamper/expiry/replay negatives |
+| **Total** | **65** | **All passing in the checked-out state** |
 
 ### Run the tests
 
-Run the redaction test suite:
-
 ```bash
-npx tsx --test backend/src/http/redact.test.ts
-```
-
-Run the wallet-import test suite:
-
-```bash
-npx tsx --test backend/src/wallet-import.test.ts
-```
-
-Run both suites using the project's configured test script, if available:
-
-```bash
+cd backend
 npm test
+```
+
+Or run only the local demo tests:
+
+```bash
+npx tsx --test backend/src/localDemo.test.ts
 ```
 
 ### Additional validation
@@ -699,32 +760,30 @@ npm run build
 
 ### Reported results
 
-The project's Phase 5 report records:
+Current results:
 
-- 7 out of 7 redaction tests passing.
-- 5 out of 5 wallet-import tests passing.
+- 65 of 65 backend tests passing, including 12 local demo tests.
 - Successful TypeScript checks across all three workspaces.
-- Successful builds across all three workspaces.
-
-These are the results recorded in the repository's audit report. Run the commands again against the current checkout to confirm its state.
+- Successful production build across all three workspaces.
+- Full local demo exercised through the HTTP API for `ldp_vc`, `vc+sd-jwt` and `dc+sd-jwt`, in both pre-authorized and authorization-code flows.
+- Docker one-command stack verified on 27 Oct 2026: images build, the backend is healthy, nginx serves the app, and the full flow passes from the browser and through the same-origin API.
 
 ### What these tests do not prove
 
 The regression tests do not demonstrate:
 
-- Successful live credential issuance.
-- Successful wallet offer acceptance.
-- Successful credential presentation.
-- Successful live verification.
-- End-to-end interoperability between deployed services.
+- Live credential issuance against Inji Certify.
+- Live wallet offer acceptance through Mimoto/Inji Web/mobile.
+- Live presentation against Inji Verify.
+- Interoperability between externally deployed services.
 
-Those workflows require appropriate external services and additional integration testing.
+The local reference stack is a real cryptographic demo, not a conformance test of the Inji implementations. Those workflows still require the external services and integration testing described in `docs/interop-gaps.md`.
 
 ---
 
 ## Current Implementation Status
 
-The project has progressed beyond an initial interface-only prototype, but the full interoperability lifecycle remains unfinished.
+The project now has two clearly separated layers: a working self-contained demo and the still-blocked live Inji integration.
 
 | Component or capability | Status |
 |---|---|
@@ -734,18 +793,22 @@ The project has progressed beyond an initial interface-only prototype, but the f
 | API routing and adapter structure | Implemented |
 | Protocol-tracing infrastructure | Implemented |
 | Sensitive-value redaction | Implemented and regression-tested |
-| Credential import validation | Implemented and regression-tested |
-| Credential listing and deletion | Implemented in the application |
-| Issuer metadata discovery | Implemented; source and structural validation documented |
-| Credential-offer creation | Implemented for the supported contract; live integration not demonstrated |
-| OAuth token exchange | Not demonstrated against a live issuer |
-| Actual credential issuance and signing | Not demonstrated end to end |
-| Live wallet offer acceptance | Not demonstrated |
-| Live credential presentation | Not demonstrated |
-| End-to-end presentation verification | Not demonstrated |
-| Complete interoperability across live services | Not demonstrated |
+| Credential import validation | Implemented in the application |
+| Credential listing, detail and deletion | Implemented in the application |
+| **Local reference stack: issue → hold → present → verify** | **Implemented, 65 tests passing, HTTP demo verified** |
+| **Pre-authorized and authorization-code local flows** | **Implemented and tested** |
+| **LDP VC and SD-JWT VC local issuance** | **Implemented and tested** |
+| **Real Ed25519 issuer/holder signatures and verifier checks** | **Implemented and tested** |
+| **Server-side verification result (not submission HTTP 200)** | **Implemented for the local stack** |
+| Issuer metadata discovery (Inji) | Implemented; source and structural validation documented |
+| Credential-offer creation (Inji) | Implemented for the supported contract; live integration not demonstrated |
+| OAuth token exchange (Inji) | Not demonstrated against a live issuer |
+| Live Inji credential issuance and signing | Not demonstrated |
+| Live Mimoto/Inji Web/mobile wallet | Not demonstrated |
+| Live Inji Verify presentation and result retrieval | Not demonstrated |
+| Complete interoperability across live Inji services | Not demonstrated |
 
-This status table reflects the project's documented audit findings. Implementation and source verification are not equivalent to live deployment testing.
+Implementation and source verification are not equivalent to live deployment testing. The local reference stack is labelled as such in the UI and documentation.
 
 ---
 
@@ -765,21 +828,21 @@ Different implementations may support different versions of OpenID for Verifiabl
 
 Compatibility must be established from the actual service configuration and protocol behavior rather than assumed.
 
-### 3. Credential issuance
+### 3. Live Inji credential issuance
 
-The presence of issuer metadata or a supported offer-creation operation does not mean a signed credential has been issued successfully.
+The local reference issuer really signs credentials, but the Inji Certify adapter has not completed a live issuance in this checkout. The presence of issuer metadata or a supported offer-creation operation is still not treated as proof of live issuance.
 
 ### 4. Wallet interoperability
 
-Importing a credential into the playground's local storage does not establish successful interoperability with an external wallet.
+The local reference wallet stores and presents its own signed credential. This does not establish successful interoperability with Inji Web, Inji Mobile or Mimoto. The external wallet adapters remain blocked until configured.
 
 ### 5. Cryptographic verification
 
-Basic structural checks do not replace cryptographic proof validation. Full verification requires the appropriate service, configuration, trust material, and validation behavior.
+The local demo verifies real Ed25519 signatures, holder binding, issuer identity, nonce, audience and expiry. It is not a conformance test: JSON-LD canonicalisation is simplified, SD-JWT disclosures are not implemented, and revocation/trust registries are absent. Live Inji Verify result retrieval is still not demonstrated.
 
 ### 6. End-to-end testing
 
-The complete issuer → wallet → verifier flow has not yet been demonstrated against a compatible live deployment.
+The complete issuer → wallet → verifier flow is demonstrated **inside the local reference stack**, not against a compatible live Inji deployment.
 
 ### 7. Deployment configuration
 
@@ -798,15 +861,13 @@ We do not claim successful issuance, presentation, or verification without the n
 The following items describe possible next steps rather than completed functionality.
 
 - Complete live integration with a compatible Inji Certify deployment.
-- Exercise the actual credential-offer and token-exchange flows.
-- Connect a compatible wallet backend and test offer acceptance.
-- Implement and validate end-to-end presentation requests.
-- Integrate a live verifier and validate its returned verdicts.
-- Expand automated tests for API routes and integration boundaries.
-- Improve compatibility reporting across different issuer and verifier implementations.
-- Document verified request and response examples.
-- Improve deployment instructions and configuration validation.
-- Record a complete end-to-end demonstration when compatible services are available.
+- Exercise the actual Inji credential-offer and token-exchange flows.
+- Connect Inji Web/Mobile through Mimoto and test offer acceptance.
+- Replace the local verifier with Inji Verify and poll `GET /vp-result/{transactionId}` or `POST /v2/vp-results/{transactionId}` for the authoritative result.
+- Add a curated Inji ↔ external scenario matrix (Animo/Hovi) instead of a Cartesian product.
+- Add full JSON-LD RDF canonicalisation, SD-JWT disclosures, `tx_code`, revocation and trust registries.
+- Add Playwright browser tests for the one-click demo and inspector.
+- Record the final 2–5 minute video and attach it to the submission.
 
 ---
 
@@ -816,6 +877,9 @@ Additional technical documentation is available in the repository.
 
 | Document | Description |
 |---|---|
+| [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) | Demo script, test data, API examples, architecture and submission checklist |
+| [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) | One-page checklist for the one-day submission |
+| [`docker-compose.yml`](docker-compose.yml) | One-command Docker demo (backend + nginx frontend + SQLite volume) |
 | [`docs/interop-gaps.md`](docs/interop-gaps.md) | Current capabilities, protocol compatibility gaps, and integration blockers |
 | [`PHASE4_REPORT.md`](PHASE4_REPORT.md) | End-to-end readiness and test-coverage audit |
 | [`PHASE5_REPORT.md`](PHASE5_REPORT.md) | Deployment-independent regression tests and results |
@@ -837,7 +901,7 @@ We thank MOSIP for providing the opportunity to work on a problem involving digi
 
 Through MOSIP Decode 2026, our team explored the architecture of credential issuers, wallets, and verifiers and worked on building a playground that makes protocol interactions more observable.
 
-Although we were unable to complete the entire implementation within the available time, we made considerable efforts to build the application foundation, implement supported functionality, test the available components, and document the remaining integration gaps.
+The result is a working local reference demo with real cryptographic signatures, a clear evidence trail, and an honest account of the remaining live Inji integration gaps.
 
 We view this project as a learning experience and a foundation for further work on interoperable digital credential systems.
 

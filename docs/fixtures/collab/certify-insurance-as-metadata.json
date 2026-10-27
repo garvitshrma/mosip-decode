@@ -1,0 +1,1 @@
+{"grant_types_supported":["authorization_code"],"response_types_supported":["code"],"code_challenge_methods_supported":["S256"],"require_interactive_authorization_request":true}
