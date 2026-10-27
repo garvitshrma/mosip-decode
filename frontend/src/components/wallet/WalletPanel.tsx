@@ -53,14 +53,23 @@ export function WalletPanel() {
     }
   };
 
-  const viewDetails = (cred: WalletCredential) => {
+  const viewDetails = async (cred: WalletCredential) => {
+    let credentialJson = "(credential body unavailable)";
+    try {
+      const stored = await api.getStoredCredential(cred.id);
+      credentialJson = stored.credentialJson ?? credentialJson;
+    } catch {
+      // Keep the summary visible even if the body cannot be loaded.
+    }
     const lines = [
       `Credential ID: ${cred.id}`,
       `Type: ${cred.type}`,
       `Format: ${cred.format}`,
       `Issuer: ${cred.issuer || "Unknown"}`,
       `Status: ${cred.status}`,
-      `Demo: ${cred.demo ? "Yes (simulated)" : "No"}`,
+      `Source: ${cred.demo ? "Simulated demo record" : "Signed local demo credential"}`,
+      "",
+      credentialJson,
     ];
     window.alert(lines.join("\n"));
   };
@@ -73,9 +82,9 @@ export function WalletPanel() {
         <span className="eyebrow">WALLET · INJI WEB</span>
         <h1>Hold and present your credentials.</h1>
         <p>
-          A holder-facing experience for securely storing credentials and presenting
-          them to relying parties. Real wallet handoff (offer acceptance and
-          credential receipt) is not yet implemented against a live wallet service.
+          The local reference wallet stores the credential issued by the Playground demo
+          and presents it to the local verifier. Inji Web and mobile wallet handoff
+          remain external integrations and are not claimed here.
         </p>
 
         {loading && (
@@ -106,10 +115,10 @@ export function WalletPanel() {
                 <div className="credential-body">
                   <p><strong>Type:</strong> {cred.type}</p>
                   <p><strong>Status:</strong> {cred.status}</p>
-                  <p><strong>Source:</strong> {cred.demo ? "Simulated demo record" : "Playground record; wallet receipt unconfirmed"}</p>
+                  <p><strong>Source:</strong> {cred.demo ? "Simulated demo record" : "Signed credential from a completed local demo run"}</p>
                 </div>
                 <div className="credential-actions">
-                  <button className="secondary-btn small" onClick={() => viewDetails(cred)}>
+                  <button className="secondary-btn small" onClick={() => void viewDetails(cred)}>
                     View
                   </button>
                   <button className="secondary-btn small destructive" onClick={() => deleteCredential(cred.id)}>
@@ -130,16 +139,16 @@ export function WalletPanel() {
       <div className="wallet-actions">
         <h3>Wallet actions</h3>
         <p className="muted small">
-          Offer acceptance, credential receipt, and presentation are handled by a
-          compatible Inji wallet (mobile or web). The playground does not currently
-          confirm that an external wallet received or stored a credential.
+          This page lists the credentials stored by the local demo. To issue and present a
+          fresh credential, run the end-to-end demo in the Playground. External Inji wallet
+          handoff is not configured in this environment.
         </p>
         <div className="button-row">
-          <button className="primary-btn" onClick={() => {}} disabled>
-            <CreditCard size={18} /> Accept offer (not connected)
+          <button className="primary-btn" onClick={() => window.location.assign("/playground")}>
+            <CreditCard size={18} /> Run the demo
           </button>
-          <button className="secondary-btn" onClick={() => {}} disabled>
-            <QrCode size={18} /> Present by QR (not connected)
+          <button className="secondary-btn" onClick={() => window.location.reload()}>
+            <QrCode size={18} /> Refresh wallet
           </button>
         </div>
       </div>

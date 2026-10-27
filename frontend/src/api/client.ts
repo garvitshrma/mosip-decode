@@ -14,7 +14,9 @@ import type {
   VerificationOutcome,
 } from "@playground/shared";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+// In Docker the build sets this to an empty string so requests go to the
+// same origin and nginx proxies them. In local development it is unset.
+const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000").replace(/\/$/, "");
 
 export interface AdapterCatalogue {
   issuers: AdapterInfo[];
@@ -68,6 +70,7 @@ export const api = {
   health: () => get<{ ok: boolean; phase: number }>("/health"),
   adapters: () => get<AdapterCatalogue>("/adapters"),
   createRun: (body: CreateRunRequest) => post<Run>("/runs", body),
+  executeRun: (runId: string) => post<Run>(`/runs/${runId}/execute`, {}),
   listCredentials: () => get<Array<{
     id: string;
     runId: string;
@@ -77,6 +80,7 @@ export const api = {
     demo: boolean;
     issuer?: string;
   }>>("/credentials"),
+  getStoredCredential: (credentialId: string) => get<Credential>(`/credentials/${credentialId}`),
   createOffer: (runId: string, body: {
     credentialType: string;
     issuanceFlow: "pre_authorized_code";
