@@ -131,7 +131,7 @@ Open **http://localhost:5173/playground**.
 4. Expand the Protocol Inspector steps to see the offer, token, proof JWT, signed credential, VP and verification result.
 5. Open **Wallet** to inspect the persisted signed credential.
 
-Full demo script, test data, API examples and submission checklist: [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md).
+Full demo script, test data, API examples and submission checklist: [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md). Pitch deck draft: [`docs/PITCH_DECK.md`](docs/PITCH_DECK.md).
 
 ---
 
@@ -877,8 +877,10 @@ Additional technical documentation is available in the repository.
 
 | Document | Description |
 |---|---|
-| [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) | Demo script, test data, API examples, architecture and submission checklist |
-| [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) | One-page checklist for the one-day submission |
+| [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) | Demo script, test data, API examples, architecture, screenshots and submission checklist |
+| [`docs/PITCH_DECK.md`](docs/PITCH_DECK.md) | Slide-by-slide pitch deck draft (7 slides + appendix, speaker notes in plain language) |
+| [`docs/SUBMISSION_CHECKLIST.md`](docs/SUBMISSION_CHECKLIST.md) | Submission checklist, official process and email template (deadline: 2 Nov 2026) |
+| [`docs/screenshots/`](docs/screenshots/) | Seven app screenshots for the deck, mockups and video |
 | [`docker-compose.yml`](docker-compose.yml) | One-command Docker demo (backend + nginx frontend + SQLite volume) |
 | [`docs/interop-gaps.md`](docs/interop-gaps.md) | Current capabilities, protocol compatibility gaps, and integration blockers |
 | [`PHASE4_REPORT.md`](PHASE4_REPORT.md) | End-to-end readiness and test-coverage audit |
