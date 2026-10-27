@@ -147,7 +147,15 @@ Open as of this writing. The visible MOSIP reply only acknowledges the question;
 
 Source: https://community.mosip.io/t/queries-regarding-ps2/2945
 
-Open as of this writing. No MOSIP reply is visible. Questions include stable-0.x vs alpha-1.0 versions, DCQL claim paths for W3C credentials, external authorization-code offers into Inji Wallet, Collab test-data/key inconsistencies, and a private security-report channel.
+Open as of this writing. No MOSIP reply is visible. The five questions: (1) is a stable-0.x local bundle acceptable, or must the local bundle itself run `v1.0.0-alpha.1`; (2) DCQL claim paths for W3C credentials in Inji Verify 1.0 — `["credentialSubject","email"]` vs the shorter `["email"]`; (3) which `client_id` and redirect the alpha Inji Wallet uses for an authorization-code offer from outside Mimoto's issuer list; (4) Collab test data — extra demo UINs, a possible Land Registry key rotation, and the Mock issuer DID arrangement; (5) where to report security problems privately. None of these change the prototype plan; they remain open questions.
+
+## Official announcement: deadline extended (27 Oct 2026)
+
+Source: https://community.mosip.io/t/mosip-decode-2026-submission-deadline-extended-to-2-november-2026/2947
+
+Team MOSIP extended the submission deadline to **2 November 2026** and asked teams to upload all
+required materials as per the Submission Guidelines. This is logistics, not a technical requirement
+change. Support address: `decode@mosip.io`.
 
 ## Latest check (27 Oct 2026)
 
@@ -155,7 +163,7 @@ Open as of this writing. No MOSIP reply is visible. Questions include stable-0.x
 - Topic 2933 (Inji Web login and sandbox pre-authorized issuance) has only an acknowledgement from Mrudula dated 21 Oct 2026; the questions remain unanswered.
 - Topic 2945 ("Queries regarding PS2", 24 Oct 2026) still has no reply. Nothing in it changes the prototype plan; its answers are already implemented or recorded as open gaps.
 - A nearby unlabeled topic (2943, "Local Inji Web credential download fails with RESIDENT-APP-028") reports a local Compose/eSignet/Mimoto download failure with no official reply; it is not PS02 guidance.
-- Conclusion: the 7 Oct and 13 Oct replies are still the latest requirement set, and the local reference stack covers the requirements they describe.
+- Conclusion: the 7 Oct and 13 Oct replies are still the latest technical requirement set, and the local reference stack covers the requirements they describe. The only new official notice is the 27 Oct deadline extension (covered above).
 
 ## What we changed in the prototype because of these threads
 
