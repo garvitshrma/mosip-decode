@@ -26,6 +26,7 @@ await db().$executeRawUnsafe(`CREATE TABLE "Run" (
     "verifier" TEXT NOT NULL,
     "format" TEXT NOT NULL,
     "kind" TEXT NOT NULL DEFAULT 'workflow',
+    "flow" TEXT,
     "status" TEXT NOT NULL,
     "verificationResult" TEXT,
     "verificationEvidence" TEXT,

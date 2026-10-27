@@ -2,6 +2,20 @@
 
 **Phase 3C — Document interoperability gaps and current capabilities**
 
+## Local reference demo (not Inji evidence)
+
+A self-contained **local reference stack** now demonstrates a complete issue → hold → present → verify flow with real Ed25519 signatures, both issuance flows and a server-verified result. It is deliberately labelled `local-*` in the adapter catalogue and in the Inspector.
+
+This is **not** evidence of interoperability with live Inji services. It exists so the prototype can be demonstrated without Docker/Collab/ngrok, and so the protocol steps can be inspected. The Inji-specific findings below still apply:
+
+- Live Inji Certify issuance, Mimoto wallet handoff and Inji Verify result retrieval remain **not demonstrated**.
+- The local demo uses sorted-key JCS-style canonical JSON, not full JSON-LD RDF canonicalisation.
+- SD-JWT VC is a compact signed JWS without disclosures.
+- OpenID4VP uses a draft-23 Presentation Definition shape with a local `did:jwk` verifier, not Inji Verify.
+- No `tx_code`, revocation/status list, JAR, response encryption or trust registry.
+
+See [`DEMO_GUIDE.md`](DEMO_GUIDE.md) for the exact scope and negative tests.
+
 
 ## Current Implementation Status
 

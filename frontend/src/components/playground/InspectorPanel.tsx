@@ -19,7 +19,7 @@ export function InspectorPanel({ steps, runId }: { steps: Step[]; runId?: string
         <div className="inspector-empty">
           <p>No protocol exchanges recorded yet.</p>
           <small>
-            Every HTTP call the backend makes is captured here with headers and bodies, secrets redacted.
+            Every protocol exchange the backend records is captured here with headers and bodies, secrets redacted.
           </small>
         </div>
       ) : (

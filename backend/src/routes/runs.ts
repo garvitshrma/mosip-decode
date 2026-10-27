@@ -4,6 +4,7 @@ import {
   CREDENTIAL_FORMATS,
   type CreateRunRequest,
   type CredentialFormat,
+  type IssuanceFlow,
   type RunError,
   type RunKind,
   type RunStatus,
@@ -15,7 +16,13 @@ import {
   type IssuerAdapter,
   type Run,
 } from "@playground/shared";
-import { findIssuer, findVerifier, findWallet } from "../adapters";
+import { findIssuer, findVerifier, findWallet, isLocalDemoSelection, supportsLocalDemoFormat } from "../adapters";
+import {
+  executeLocalDemo,
+  LOCAL_DEMO_ISSUER,
+  LOCAL_DEMO_VERIFIER,
+  LOCAL_DEMO_WALLET,
+} from "../adapters/localDemo";
 import {
   CredentialOfferOutcomeUnknownError,
   type CredentialIssuerMetadata,
@@ -25,8 +32,10 @@ import {
   createRun,
   getOfferOperation,
   getRun,
+  getStoredCredential,
   listStoredCredentials,
   listRuns,
+  saveRunCredential,
   updateOfferOperation,
   updateRun,
   deleteCredential,
@@ -42,6 +51,7 @@ const formatIds = CREDENTIAL_FORMATS.map((f) => f.id);
 const runStatuses: RunStatus[] = ["running", "pass", "fail"];
 const verificationOutcomes: VerificationOutcome[] = ["VALID", "INVALID", "EXPIRED", "REVOKED"];
 const runKinds: RunKind[] = ["workflow", "verification", "issuance"];
+const issuanceFlows: IssuanceFlow[] = ["authorization_code", "pre_authorized_code"];
 const verifierMethods = ["qr-upload", "qr-scan", "openid4vp"] as const;
 const verifierEvents = ["verifier_started", "verification_result", "verification_error"] as const;
 const issuanceOfferLocks = new Map<string, {
@@ -258,6 +268,28 @@ export async function createDurableIssuanceOffer(
 }
 
 function validate(body: Partial<CreateRunRequest>): string | undefined {
+  const localIds = new Set([LOCAL_DEMO_ISSUER, LOCAL_DEMO_WALLET, LOCAL_DEMO_VERIFIER]);
+  const usesLocalDemo = [body.issuer, body.wallet, body.verifier].some(
+    (id) => typeof id === "string" && localIds.has(id),
+  );
+  if (usesLocalDemo) {
+    if (!isLocalDemoSelection(body.issuer, body.wallet, body.verifier)) {
+      return "The local reference issuer, wallet and verifier must be selected together";
+    }
+    if (body.kind !== undefined && body.kind !== "workflow") {
+      return "The local demo only supports workflow runs";
+    }
+    if (body.flow !== undefined && !issuanceFlows.includes(body.flow as IssuanceFlow)) {
+      return `Unknown issuance flow: ${body.flow}`;
+    }
+    if (!body.format || !formatIds.includes(body.format as CredentialFormat)) {
+      return `Unknown format: ${body.format}`;
+    }
+    if (!supportsLocalDemoFormat(body.format as CredentialFormat)) {
+      return `The local demo does not support the ${body.format} format`;
+    }
+    return undefined;
+  }
   if (!body.issuer || !findIssuer(body.issuer)) return `Unknown issuer: ${body.issuer}`;
   if (!body.wallet || !findWallet(body.wallet)) return `Unknown wallet: ${body.wallet}`;
   if (!body.verifier || !findVerifier(body.verifier)) return `Unknown verifier: ${body.verifier}`;
@@ -266,6 +298,9 @@ function validate(body: Partial<CreateRunRequest>): string | undefined {
   }
   if (body.kind !== undefined && !runKinds.includes(body.kind as RunKind)) {
     return `Unknown run kind: ${body.kind}`;
+  }
+  if (body.flow !== undefined && !issuanceFlows.includes(body.flow as IssuanceFlow)) {
+    return `Unknown issuance flow: ${body.flow}`;
   }
   return undefined;
 }
@@ -284,6 +319,77 @@ runRoutes.post(
 
     const run = await createRun(body as CreateRunRequest);
     res.status(201).json(run);
+  })
+);
+
+runRoutes.post(
+  "/runs/:id/execute",
+  route(async (req, res) => {
+    const run = await getRun(req.params.id);
+    if (!run) {
+      res.status(404).json({ error: `No run with id ${req.params.id}` });
+      return;
+    }
+    if (run.status !== "running") {
+      res.status(409).json({ error: "Run already has a terminal result" });
+      return;
+    }
+    if (run.kind !== "workflow" || !isLocalDemoSelection(run.issuer, run.wallet, run.verifier)) {
+      res.status(409).json({
+        error: "This run does not use the local reference issuer, wallet and verifier",
+      });
+      return;
+    }
+    if (!supportsLocalDemoFormat(run.format)) {
+      res.status(409).json({ error: `The local demo does not support the ${run.format} format` });
+      return;
+    }
+
+    try {
+      const result = await executeLocalDemo({
+        runId: run.id,
+        format: run.format,
+        flow: run.flow ?? "pre_authorized_code",
+        record: recorderFor(run.id),
+      });
+      const credential = await saveRunCredential({
+        runId: run.id,
+        type: result.credential.type,
+        format: run.format,
+        credentialJson: result.credential.credentialJson,
+        status: result.outcome === "VALID" ? "verified" : "issued",
+        demo: false,
+      });
+      const status: RunStatus = result.outcome === "VALID" ? "pass" : "fail";
+      await updateRun(run.id, {
+        status,
+        verificationResult: result.outcome,
+        verificationEvidence: "server-verified",
+      });
+      emitRunUpdate({
+        runId: run.id,
+        status,
+        verificationResult: result.outcome,
+        verificationEvidence: "server-verified",
+      });
+      const updated = await getRun(run.id);
+      res.json({ ...updated, credential });
+    } catch {
+      await updateRun(run.id, {
+        status: "fail",
+        verificationResult: "INVALID",
+        verificationEvidence: "server-verified",
+        error: { step: "credential", message: "Local demo execution failed" },
+      }).catch(() => undefined);
+      emitRunUpdate({
+        runId: run.id,
+        status: "fail",
+        verificationResult: "INVALID",
+        verificationEvidence: "server-verified",
+        error: { step: "credential", message: "Local demo execution failed" },
+      });
+      res.status(500).json({ error: "Local demo execution failed" });
+    }
   })
 );
 
@@ -588,6 +694,18 @@ runRoutes.get(
   "/credentials",
   route(async (_req, res) => {
     res.json(await listStoredCredentials());
+  })
+);
+
+runRoutes.get(
+  "/credentials/:id",
+  route(async (req, res) => {
+    const credential = await getStoredCredential(req.params.id);
+    if (!credential) {
+      res.status(404).json({ error: "Credential not found" });
+      return;
+    }
+    res.json(credential);
   })
 );
 

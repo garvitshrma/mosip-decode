@@ -1,5 +1,5 @@
 import { Building2, WalletCards, ShieldCheck, FileCode2 } from "lucide-react";
-import type { AdapterInfo, CredentialFormat } from "@playground/shared";
+import type { AdapterInfo, CredentialFormat, IssuanceFlow } from "@playground/shared";
 import type { AdapterCatalogue } from "../../api/client";
 
 export interface Selection {
@@ -7,6 +7,7 @@ export interface Selection {
   wallet: string;
   verifier: string;
   format: CredentialFormat;
+  flow: IssuanceFlow;
 }
 
 function Column({
@@ -115,6 +116,19 @@ export function AdapterSelector({
             The three components above share no common format. That is itself an interoperability gap.
           </p>
         )}
+        <label style={{ marginTop: 14 }}>
+          <span className="muted small">Issuance flow</span>
+          <select
+            value={selection.flow}
+            onChange={(event) => onChange({ ...selection, flow: event.target.value as IssuanceFlow })}
+          >
+            <option value="pre_authorized_code">Pre-authorized code (credential offer / QR)</option>
+            <option value="authorization_code">Authorization code (redirect + consent)</option>
+          </select>
+        </label>
+        <p className="selector-note">
+          The local reference issuer executes both flows. Inji Mobile supports both; Inji Web uses authorization code.
+        </p>
       </div>
     </section>
   );

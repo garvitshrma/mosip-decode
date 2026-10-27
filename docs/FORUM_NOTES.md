@@ -123,3 +123,54 @@ against source; they are our findings, not mentor guidance.
    `POST /v2/vp-results/{transactionId}`. The status long poll is delivery status, not a verdict.
 4. **Local vs Collab.** Docker-internal hostnames and localhost are not reachable from a phone.
    Public https tunnel required for anything a wallet has to resolve.
+
+---
+
+## Thread: Wallet integration and verification result retrieval (answered 13 Oct 2026)
+
+Source: https://community.mosip.io/t/clarification-on-inji-wallet-integration-and-verification-result-retrieval-for-the-interoperability-playground/2930
+
+The Inji team's reply adds four concrete requirements:
+
+1. **Support both issuance flows.** Inji Mobile supports authorization code and pre-authorized code; **Inji Web should use authorization code** because credential-offer flow is mobile-only.
+2. **Presentation:** generate the request from the Verify section and provide a way to launch the wallet. A **DID-based request** is acceptable and does **not** require pre-registering the verifier.
+3. **Never treat submission HTTP 200 as verification success.** Fetch the verdict separately from Inji Verify's result API (the reply points to `VPResultController.java`, `v1.0.0-alpha.1`: `GET /vp-result/{transactionId}` and `POST /v2/vp-results/{transactionId}`).
+4. **Start locally with Docker Compose**, then try Collab. Use ngrok/cloudflared for anything a phone must resolve. The team points to `inji-mock-services` (`develop`) as a reference, and pins Certify/Verify/Mobile/Web to `v1.0.0-alpha.1`.
+
+## Thread: PS02 Web login and sandbox pre-authorized issuance (17 Oct 2026)
+
+Source: https://community.mosip.io/t/ps02-inji-web-login-and-sandbox-pre-authorized-issuance-configuration/2933
+
+Open as of this writing. The visible MOSIP reply only acknowledges the question; there is **no confirmed** answer for the stored-wallet Google OAuth client, a test IdP alternative, or whether public Mock Certify configurations support pre-authorized issuance. Do not assume those are configured.
+
+## Thread: Queries regarding PS2 (24 Oct 2026)
+
+Source: https://community.mosip.io/t/queries-regarding-ps2/2945
+
+Open as of this writing. No MOSIP reply is visible. The five questions: (1) is a stable-0.x local bundle acceptable, or must the local bundle itself run `v1.0.0-alpha.1`; (2) DCQL claim paths for W3C credentials in Inji Verify 1.0 — `["credentialSubject","email"]` vs the shorter `["email"]`; (3) which `client_id` and redirect the alpha Inji Wallet uses for an authorization-code offer from outside Mimoto's issuer list; (4) Collab test data — extra demo UINs, a possible Land Registry key rotation, and the Mock issuer DID arrangement; (5) where to report security problems privately. None of these change the prototype plan; they remain open questions.
+
+## Official announcement: deadline extended (27 Oct 2026)
+
+Source: https://community.mosip.io/t/mosip-decode-2026-submission-deadline-extended-to-2-november-2026/2947
+
+Team MOSIP extended the submission deadline to **2 November 2026** and asked teams to upload all
+required materials as per the Submission Guidelines. This is logistics, not a technical requirement
+change. Support address: `decode@mosip.io`.
+
+## Latest check (27 Oct 2026)
+
+- No new official technical guidance after the 13 Oct 2026 reply in topic 2930. That topic was auto-closed on 23 Oct 2026.
+- Topic 2933 (Inji Web login and sandbox pre-authorized issuance) has only an acknowledgement from Mrudula dated 21 Oct 2026; the questions remain unanswered.
+- Topic 2945 ("Queries regarding PS2", 24 Oct 2026) still has no reply. Nothing in it changes the prototype plan; its answers are already implemented or recorded as open gaps.
+- A nearby unlabeled topic (2943, "Local Inji Web credential download fails with RESIDENT-APP-028") reports a local Compose/eSignet/Mimoto download failure with no official reply; it is not PS02 guidance.
+- Conclusion: the 7 Oct and 13 Oct replies are still the latest technical requirement set, and the local reference stack covers the requirements they describe. The only new official notice is the 27 Oct deadline extension (covered above).
+
+## What we changed in the prototype because of these threads
+
+- The local demo supports **both** authorization-code and pre-authorized-code flows.
+- The verifier records a **separate `verification_result` step** after the VP submission; HTTP 200 alone never sets PASS.
+- The verifier identity and VP proof are **DID-based** (`did:jwk`) and bind the request nonce.
+- The Playground exposes issuer, wallet, verifier, format and flow choices, and a curated local stack rather than a full Cartesian product.
+- The Wallet page shows the persisted signed credential; the Protocol Inspector shows every issuance and presentation exchange.
+
+Still to do for live Inji interop: wire real Certify/Mimoto/Verify deployments, add the QR/wallet handoff for Inji Mobile, add Inji Web authorization-code flow, and build the curated Inji ↔ external scenario matrix (Animo/Hovi).
