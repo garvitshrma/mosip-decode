@@ -291,21 +291,23 @@ The official MOSIP submission guidelines require the following. Status is for th
 |---|---|---|
 | Source code | Done | Push all changes to the GitHub repository; keep the history. |
 | Working prototype/demo | **Done** | Docker one-command demo works; local demo passes. |
-| Pitch presentation / slide deck | Team-owned | Build 5–7 slides: problem, solution, live demo screenshots, architecture, interop gaps, impact, roadmap. |
-| Video demo (2–5 min) | Team-owned | Record using the script in section 4. Show the Playground + Inspector + Wallet. |
-| Design mockups / wireframes | Team-owned | Export 3–4 screens from the running app or recreate the user flow in Figma. |
+| Pitch presentation / slide deck | **Draft ready** | 7 slides + appendix with speaker notes in [`PITCH_DECK.md`](PITCH_DECK.md). Team: style and export to Google Slides/Canva. |
+| Video demo (2–5 min) | Team-owned | Record using the script in section 4; the screenshots in `docs/screenshots/` show the exact views to capture. |
+| Design mockups / wireframes | **Done** | Seven captured screens in [`docs/screenshots/`](screenshots/); the app's 4-step flow (Issue → Hold → Present → Verify) doubles as the user-flow diagram. |
 | Architecture diagram | Done | Mermaid in section 9; paste into the deck. |
 | Test data | Done | Section 6. |
 | Test cases and results | Done | Section 7; rerun the commands before submission. |
 | Usage and installation instructions | Done | Section 2/3 and README. |
 | API documentation | Done | Section 8 and README. |
-| Git repository with history | Check | Confirm the repo is public/accessible and contains the commits from all team members. |
+| Git repository with history | Ready to push | The phased commits are on `feat/ps02-working-prototype`; push the branch and confirm the repo is accessible. |
 | College/university credentials | Team-owned | Each student uploads a valid college ID. |
-| Submission email | Team-owned | Send team name, PS02 and all links to `decode@mosip.io`; make sure links are accessible. |
+| Submission email | Team-owned | Send team name, PS02 and all links to `decode@mosip.io`; deadline **2 Nov 2026** (extended 27 Oct 2026); make sure links are accessible. |
 
-### One-day plan
+### Submission plan (deadline extended to 2 Nov 2026)
 
-1. **Morning:** run `docker compose up --build`, click through the demo, fix any port conflict. Run `npm test`, `npm run typecheck`, `npm run build`.
+Deadline: **2 November 2026** (MOSIP extended it; announced 27 Oct 2026).
+
+1. **First:** run `docker compose up --build`, click through the demo, fix any port conflict. Run `npm test`, `npm run typecheck`, `npm run build`.
 2. **Midday:** record the 2–3 minute video using the script. Take 4–5 screenshots for the deck.
 3. **Afternoon:** finish the pitch deck and the design/wireframe slides. Add the architecture diagram and test matrix.
 4. **Evening:** verify the GitHub repo is accessible, all mandatory links are public, and email `decode@mosip.io` with team name, PS02 and URLs.
@@ -322,3 +324,19 @@ The official MOSIP submission guidelines require the following. Status is for th
 - The frontend bundle is large because it includes the Inji Verify SDK; this does not affect the demo.
 
 See `docs/interop-gaps.md` for the source-verified Inji endpoint gaps and `PHASE4_REPORT.md`/`PHASE5_REPORT.md` for the earlier audit.
+
+---
+
+## 12. Screenshots (captured 27 Oct 2026, Docker stack)
+
+These double as the design-mockup deliverable and the slide images for the deck.
+
+| File | What it shows |
+|---|---|
+| `docs/screenshots/home.png` | Landing page: "One credential. Three interoperable experiences." |
+| `docs/screenshots/playground-setup.png` | Playground selection UI: issuer, wallet, verifier, format, flow. |
+| `docs/screenshots/playground-result.png` | Pass card: `pass`, `VALID`, `server-verified`, issued credential. |
+| `docs/screenshots/inspector.png` | Protocol Inspector: the 9 recorded exchanges plus both QR artifacts. |
+| `docs/screenshots/wallet-credential.png` | Wallet page with persisted, verified credentials. |
+| `docs/screenshots/issuer-panel.png` | Issuer module: Inji Certify adapter honestly blocked until configured. |
+| `docs/screenshots/verifier-panel.png` | Verifier module: Inji Verify SDK blocked until configured. |
