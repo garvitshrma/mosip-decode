@@ -1,4 +1,4 @@
-import type { CredentialFormat, Role, Stage, StepName, VerificationOutcome } from "./types";
+import type { CredentialFormat, IssuanceFlow, Role, Stage, StepName, VerificationOutcome } from "./types";
 
 /** How ready an adapter is to take part in a real run. */
 export type AdapterReadiness =
@@ -27,8 +27,6 @@ export interface RunContext {
   format: CredentialFormat;
   record: RecordStep;
 }
-
-export type IssuanceFlow = "authorization_code" | "pre_authorized_code";
 
 export interface CredentialOfferRequest {
   credentialType: string;

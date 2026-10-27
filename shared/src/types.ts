@@ -21,6 +21,9 @@ export const CREDENTIAL_FORMATS: { id: CredentialFormat; label: string }[] = [
 /** Which half of the lifecycle a step belongs to. */
 export type Stage = "issuance" | "presentation";
 
+/** OpenID4VCI issuance flow selected for a run. */
+export type IssuanceFlow = "authorization_code" | "pre_authorized_code";
+
 /**
  * Known protocol steps. A step name is a plain string so non-protocol traffic
  * (for example a metadata probe) can be recorded too, but prefer these.
@@ -102,6 +105,8 @@ export interface Run {
   verifier: string;
   format: CredentialFormat;
   kind: RunKind;
+  /** Issuance flow this run uses; older runs default to pre-authorized code. */
+  flow?: IssuanceFlow;
   status: RunStatus;
   verificationResult?: VerificationOutcome;
   verificationEvidence?: VerificationEvidence;
@@ -121,6 +126,8 @@ export interface CreateRunRequest {
   format: CredentialFormat;
   /** Existing callers default to a workflow run; verifier attempts set this explicitly. */
   kind?: RunKind;
+  /** Defaults to pre_authorized_code when omitted. */
+  flow?: IssuanceFlow;
 }
 
 /** Run without its steps, for list views. */
