@@ -23,7 +23,9 @@ export function useRunSteps(runId?: string) {
       })
       .catch(() => undefined);
 
-    const socket: Socket = io(api.baseUrl, { transports: ["websocket", "polling"] });
+    // An empty base URL means "same origin" (Docker/nginx). Passing undefined
+    // lets socket.io use the browser origin instead of an empty host.
+    const socket: Socket = io(api.baseUrl || undefined, { transports: ["websocket", "polling"] });
     socket.emit(SOCKET_EVENTS.subscribe, runId);
     socket.on(SOCKET_EVENTS.step, (event: RunStepEvent) => {
       setSteps((current) => (current.some((s) => s.id === event.step.id) ? current : [...current, event.step]));
