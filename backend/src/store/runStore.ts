@@ -36,6 +36,7 @@ type RunRow = {
   verifier: string;
   format: string;
   kind: string;
+  flow: string | null;
   status: string;
   verificationResult: string | null;
   verificationEvidence: string | null;
@@ -93,6 +94,7 @@ function toRun(row: RunRow, steps: StepRow[]): Run {
     verifier: row.verifier,
     format: row.format as Run["format"],
     kind: row.kind as RunKind,
+    flow: (row.flow as Run["flow"]) ?? undefined,
     status: row.status as RunStatus,
     verificationResult: (row.verificationResult as VerificationOutcome) ?? undefined,
     verificationEvidence: (row.verificationEvidence as VerificationEvidence) ?? undefined,
@@ -111,6 +113,7 @@ export async function createRun(input: CreateRunRequest): Promise<Run> {
       verifier: input.verifier,
       format: input.format,
       kind: input.kind ?? "workflow",
+      flow: input.flow ?? "pre_authorized_code",
       status: "running",
     },
   });
@@ -157,6 +160,42 @@ export interface StoredCredentialSummary {
   issuer?: string;
 }
 
+export async function saveRunCredential(input: {
+  runId: string;
+  type: string;
+  format: string;
+  credentialJson: string;
+  status: string;
+  demo: boolean;
+}): Promise<Credential> {
+  const row = await db().credential.upsert({
+    where: { runId: input.runId },
+    create: {
+      id: nanoid(16),
+      runId: input.runId,
+      format: input.format,
+      credentialJson: input.credentialJson,
+      status: input.status,
+      demo: input.demo,
+    },
+    update: {
+      format: input.format,
+      credentialJson: input.credentialJson,
+      status: input.status,
+      demo: input.demo,
+    },
+  });
+  return {
+    id: row.id,
+    type: input.type,
+    format: row.format as Credential["format"],
+    issuedAt: row.issuedAt.toISOString(),
+    credentialJson: row.credentialJson,
+    status: row.status,
+    demo: row.demo,
+  };
+}
+
 export async function listStoredCredentials(): Promise<StoredCredentialSummary[]> {
   const rows = await db().credential.findMany({
     where: { status: { not: "deleted" } },
@@ -174,12 +213,26 @@ export async function listStoredCredentials(): Promise<StoredCredentialSummary[]
   return rows.map((row) => ({
     id: row.id,
     runId: row.runId,
-    type: row.format === "ldp_vc" ? "VerifiableCredential" : "VerifiableCredential",
+    type: "InjiInteropDemoCredential",
     format: row.format,
     status: row.status,
     demo: row.demo,
     issuer: row.run.issuer,
   }));
+}
+
+export async function getStoredCredential(id: string): Promise<Credential | null> {
+  const row = await db().credential.findFirst({ where: { id, status: { not: "deleted" } } });
+  if (!row) return null;
+  return {
+    id: row.id,
+    type: "InjiInteropDemoCredential",
+    format: row.format as Credential["format"],
+    issuedAt: row.issuedAt.toISOString(),
+    credentialJson: row.credentialJson,
+    status: row.status,
+    demo: row.demo,
+  };
 }
 
 function toOfferOperation(row: {

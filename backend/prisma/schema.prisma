@@ -14,6 +14,7 @@ model Run {
   verifier           String
   format             String
   kind               String   @default("workflow")
+  flow               String?
   status             String
   verificationResult String?
   verificationEvidence String?
