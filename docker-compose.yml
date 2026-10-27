@@ -1,0 +1,32 @@
+services:
+  backend:
+    build:
+      context: .
+      target: backend
+    environment:
+      PORT: 4000
+      # The browser origin that is allowed to call the backend directly.
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      DATABASE_URL: file:/data/dev.db
+    volumes:
+      - demo-db:/data
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  demo-db:
